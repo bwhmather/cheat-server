@@ -71,6 +71,9 @@ class Stack(object):
 
         return Stack(updated)
 
+    def __repr__(self):
+        return f"Stack([{', '.join(self)}])"
+
 
 class Table(object):
     """

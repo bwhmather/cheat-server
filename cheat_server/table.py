@@ -120,13 +120,27 @@ class Table(object):
             raise TypeError((
                 "expected 'Stack' but played is of type {cls}"
             ).format(cls=type(played).__name__))
-        self.__played = Stack(played)
+        self.__played = played
 
+        # Check discarded.
         if not isinstance(discarded, Stack):
             raise TypeError((
                 "expected 'Stack' but discarded is of type {cls}"
             ).format(cls=type(discarded).__name__))
-        self.__discarded = Stack(discarded)
+        self.__discarded = discarded
+
+        # Check that table has been constructed with exactly one deck of cards.
+        cards = []
+        for hand in hands:
+            cards += list(hand)
+        cards += list(played)
+        cards += list(discarded)
+
+        if set(cards) != ALL_CARDS:
+            raise AssertionError("cards missing from table")
+
+        if len(cards) > len(ALL_CARDS):
+            raise AssertionError("table contains duplicate cards")
 
     @classmethod
     def deal(cls, cards):

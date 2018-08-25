@@ -50,11 +50,20 @@ class WaitingStartMoveState(State):
         self.__table = table
 
     def on_play(self, *, player, cards, quote):
-        # The cards must be held by the player.
-        # One of the cards must be the three of hearts.
-        # All cards must have rank three.
+        # === Preconditions ===
         # The number of cards must match the number claimed.
+
         # The claim must have rank three.
+
+        # All cards must have rank three.
+
+        # One of the cards must be the three of hearts.
+
+        # The cards must be held by the player.
+
+        # === Outcomes ===
+        # The claim is recorded and cards moved to the played pile.  Control
+        # goes to the next player.
         ...
 
 
@@ -73,11 +82,20 @@ class WaitingRestartMoveState(State):
         self.__table = table
 
     def on_play(self, *, player, cards, quote):
+        # === Preconditions ===
         # The cards must be held by the player.
+
         # The claimed number of cards must be greater than or equal to one.
+
         # The claimed number of cards must be less than or equal to six.
+
         # There is no restriction on rank.
+
         # The number of cards must match the number claimed.
+
+        # === Outcomes ===
+        # The claim is recorded and cards moved to the played pile.  Control
+        # goes to the next player.
         ...
 
 
@@ -91,27 +109,76 @@ class WaitingForNextMoveState(State):
     """
 
     def __init__(
-        self, *, next_player, table, last_move,
+        self, *, next_player, table, last_claim,
     ):
         self.__next_player = next_player
         self.__table = table
-        self.__last_move
+        self.__last_claim
 
     def on_play(self, *, player, cards, claim):
+        # === Preconditions ===
         # The cards must be played by the player to the left of the previous
         # player.
-        # The cards must be held by that player.
+
+        # All of played cards must be held by that player.
+
         # The number claimed must match the previous claim.
+
         # The rank claimed must be greater than or equal to the previous claim.
+
         # The number of cards must match the number claimed.
+
+        # === Outcomes ===
+        # If a player other than the current player has no cards left then that
+        # player wins.
+
+        # The claim is registered and the cards moved to the played pile.
+        # Control goes to the next player.
         ...
 
     def on_fold(self, *, player):
+        # === Preconditions ===
         # The fold must be requested by the player to the left of the previous
         # player.
+
+        # === Outcomes ===
+        # If a player other than the current player has no cards left then that
+        # player wins.
+
+        # Cards in the played pile are moved to the discard pile. Control goes
+        # to the next player to restart the bidding.
         ...
 
     def on_call(self, *, player):
+        # === Preconditions ===
         # There is no restriction on what player can call cheat.  A player can
         # call cheat on themselves if they really want to.
+
+        # === Outcomes ===
+        # If the cards at the top of the played pile match the claim then the
+        # player who called cheat collects the cards and play resumes from
+        # the player to their left.
+
+        # If the cards at the top of the played pile do not match the claim
+        # then the player who played them must collect and the player who
+        # called cheat gets the next move.
+        ...
+
+
+class VictoryState(State):
+    """
+    One of the players has no cards left, and has survived the next player's
+    turn without being successfully called out.  They win!
+    """
+
+    def __init__(self, *, winner):
+        pass
+
+    def on_deal(self, *, player):
+        # === Preconditions ===
+        # The player who holds the three of hearts always goes first so there
+        # is not need to restrict who can deal.
+
+        # === Outcomes ===
+        # Cards are dealt evenly to all of the players on the table
         ...

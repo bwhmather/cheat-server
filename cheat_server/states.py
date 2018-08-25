@@ -1,12 +1,52 @@
+from validation import validate_list, validate_int
+
+from cheat_server.cards import validate_card, validate_rank
+from cheat_server.table import validate_table
 from cheat_server.exceptions import UnexpectedActionError
+
+_undefined = object()
+
+
+class Claim(object):
+
+    __slots__ = ['_Claim__rank', '_Claim__count']
+
+    @property
+    def rank(self):
+        return self.__rank
+
+    @property
+    def count(self):
+        return self.__count
+
+    def __init__(self, rank, count):
+        validate_rank(rank)
+        self.__rank = rank
+
+        validate_int(count, min_value=1, max_value=6)
+        self.__count = count
+
+
+def _validate_claim(value):
+    if not isinstance(value, Claim):
+        raise TypeError(
+            f"expected 'Claim' but value is of type {type(value)!r}"
+        )
+
+
+def validate_claim(value=_undefined):
+    def validate(value):
+        _validate_claim(value)
+
+    if value is not _undefined:
+        validate(value)
+    else:
+        return validate
 
 
 class State(object):
 
-    def on_join(self):
-        raise UnexpectedActionError("unexpected action `join`")
-
-    def on_deal(self):
+    def on_deal(self, *, player):
         raise UnexpectedActionError("unexpected action `deal`")
 
     def on_play(self, *, player, cards, quote):
@@ -19,23 +59,7 @@ class State(object):
         raise UnexpectedActionError("unexpected action `call`")
 
 
-class WaitingForPlayersState(State):
-    """
-    The game is afoot, but not everyone is here yet.
-    """
-
-    @property
-    def num_players(self):
-        return self.__num_players
-
-    def __init__(self, *, num_players):
-        self.__num_players = num_players
-
-    def on_join(self):
-        ...
-
-
-class WaitingStartMoveState(State):
+class StartedState(State):
     """
     Waiting for the first move to be made.  Cards should be dealt evenly, and
     there should be nothing in the `played` or `discard` piles.
@@ -44,9 +68,14 @@ class WaitingStartMoveState(State):
     optionally with any other threes that they have in their hand.
     """
 
+    @property
+    def table(self):
+        return self.__table
+
     def __init__(
         self, *, table,
     ):
+        validate_table(table)
         self.__table = table
 
     def on_play(self, *, player, cards, quote):
@@ -67,7 +96,7 @@ class WaitingStartMoveState(State):
         ...
 
 
-class WaitingRestartMoveState(State):
+class RestartedState(State):
     """
     The previous round ended with a player picking up the cards from the in-
     play pile or the in-play being discarded.
@@ -75,11 +104,22 @@ class WaitingRestartMoveState(State):
     The next player can restart the round.
     """
 
+    @property
+    def next_player(self):
+        return self.__next_player
+
+    @property
+    def table(self):
+        return self.__table
+
     def __init__(
         self, *, next_player, table,
     ):
-        self.__next_player = next_player
+        validate_table(table)
         self.__table = table
+
+        validate_int(next_player, min_value=0, max_value=len(table.hands))
+        self.__next_player = next_player
 
     def on_play(self, *, player, cards, quote):
         # === Preconditions ===
@@ -99,7 +139,7 @@ class WaitingRestartMoveState(State):
         ...
 
 
-class WaitingForNextMoveState(State):
+class InPlayState(State):
     """
     A round is in progress and at least one move is in progress.
 
@@ -108,21 +148,49 @@ class WaitingForNextMoveState(State):
     discard pile, or call out the previous player for their lies.
     """
 
+    @property
+    def next_player(self):
+        return self.__next_player
+
+    @property
+    def table(self):
+        return self.__next_player
+
+    @property
+    def last_claim(self):
+        return self.__last_claim
+
     def __init__(
         self, *, next_player, table, last_claim,
     ):
-        self.__next_player = next_player
+        validate_table(table)
         self.__table = table
+
+        validate_int(next_player, min_value=0, max_value=len(table.hands))
+        self.__next_player = next_player
+
+        validate_claim(last_claim)
         self.__last_claim
 
     def on_play(self, *, player, cards, claim):
+        validate_int(player)
+        validate_list(validator=validate_card(), min_length=1, max_length=6)
+        validate_claim(claim)
+
         # === Preconditions ===
         # The cards must be played by the player to the left of the previous
         # player.
+        if player != self.next_player:
+            raise Exception()
 
         # All of played cards must be held by that player.
+        for card in cards:
+            if card not in self.table.hands[player]:
+                raise Exception("can not play card that is not held")
 
         # The number claimed must match the previous claim.
+        if claim.count < self.last_claim.count:
+            raise Exception()
 
         # The rank claimed must be greater than or equal to the previous claim.
 
@@ -170,9 +238,13 @@ class VictoryState(State):
     One of the players has no cards left, and has survived the next player's
     turn without being successfully called out.  They win!
     """
+    @property
+    def winner(self):
+        return self.__winner
 
     def __init__(self, *, winner):
-        pass
+        validate_int(winner, min_value=0)
+        self.__winner = winner
 
     def on_deal(self, *, player):
         # === Preconditions ===

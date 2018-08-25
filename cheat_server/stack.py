@@ -1,4 +1,8 @@
-from cheat_server.cards import ALL_CARDS
+from validation import validate_list
+
+from cheat_server.cards import validate_card
+
+_undefined = object()
 
 
 class Stack(object):
@@ -6,10 +10,7 @@ class Stack(object):
 
     def __init__(self, cards=[]):
         cards = list(cards)
-
-        for card in cards:
-            if card not in ALL_CARDS:
-                raise ValueError("invalid card: {card!r}".format(card=card))
+        validate_list(cards, validator=validate_card())
 
         if len(cards) != len(set(cards)):
             raise ValueError("stack contains duplicates")
@@ -73,3 +74,20 @@ class Stack(object):
 
     def __repr__(self):
         return f"Stack([{', '.join(self)}])"
+
+
+def _validate_stack(value):
+    if not isinstance(value, Stack):
+        raise TypeError(
+            f"expected 'Stack' but value is of type {type(value)!r}"
+        )
+
+
+def validate_stack(value=_undefined):
+    def validate(value):
+        _validate_stack(value)
+
+    if value is not _undefined:
+        validate(value)
+    else:
+        return validate

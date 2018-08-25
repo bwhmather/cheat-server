@@ -1,5 +1,7 @@
+from validation import validate_list
+
+from cheat_server.stack import Stack, validate_stack
 from cheat_server.cards import ALL_CARDS
-from cheat_server.stack import Stack
 
 
 class Table(object):
@@ -35,25 +37,17 @@ class Table(object):
         return self.__discarded
 
     def __init__(self, *, hands, played, discarded):
+        # Check hands.
         hands = tuple(hands)
-        for hand in hands:
-            if not isinstance(hand, Stack):
-                raise TypeError((
-                    "expected 'Stack' but hand is of type {cls}"
-                ).format(cls=type(played).__name__))
+        validate_list(list(hands), validator=validate_stack())
         self.__hands = hands
 
-        if not isinstance(played, Stack):
-            raise TypeError((
-                "expected 'Stack' but played is of type {cls}"
-            ).format(cls=type(played).__name__))
+        # Check stack.
+        validate_stack(played)
         self.__played = played
 
         # Check discarded.
-        if not isinstance(discarded, Stack):
-            raise TypeError((
-                "expected 'Stack' but discarded is of type {cls}"
-            ).format(cls=type(discarded).__name__))
+        validate_stack(discarded)
         self.__discarded = discarded
 
         # Check that table has been constructed with exactly one deck of cards.
@@ -139,7 +133,7 @@ class Table(object):
     def collect(self, *, player):
         """
         Creates a copy of the table with all cards from the `played` stack
-        movedto a player's hand.
+        moved to a player's hand.
         """
         # Cards from the played pile are moved to the selected players hand.
         hands = list(self.hands)

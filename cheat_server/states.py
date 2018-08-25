@@ -6,6 +6,12 @@ from cheat_server.exceptions import UnexpectedActionError
 
 _undefined = object()
 
+_RANK_ORDER = [
+    '3', '4', '5', '6', '7', '8', '9', '10',
+    'Jack', 'Queen', 'King',
+    'Ace', '2',
+]
+
 
 class Claim(object):
 
@@ -189,20 +195,35 @@ class InPlayState(State):
                 raise Exception("can not play card that is not held")
 
         # The number claimed must match the previous claim.
-        if claim.count < self.last_claim.count:
-            raise Exception()
+        if claim.count != self.last_claim.count:
+            raise Exception("claim count must match previous claim")
 
         # The rank claimed must be greater than or equal to the previous claim.
+        if (
+            _RANK_ORDER.index(claim.rank) <
+            _RANK_ORDER.index(self.last_claim.rank)
+        ):
+            raise Exception("claim rank must meet or exceed previous claim")
 
         # The number of cards must match the number claimed.
+        if len(cards) != claim.count:
+            raise Exception("number of cards played does not match claim")
 
         # === Outcomes ===
         # If a player other than the current player has no cards left then that
-        # player wins.
+        # player wins.  We run this check before moving the cards as doing so
+        # means that the player will definitely still be holding some cards.
+        for possible_winner, hand in enumerate(self.table.hands):
+            if not hand:
+                return VictoryState(winner=possible_winner)
 
         # The claim is registered and the cards moved to the played pile.
         # Control goes to the next player.
-        ...
+        next_player = (player + 1) % len(self.table.hands)
+        table = self.table.play(cards)
+        return InPlayState(
+            next_player=next_player, table=table, last_claim=claim,
+        )
 
     def on_fold(self, *, player):
         # === Preconditions ===

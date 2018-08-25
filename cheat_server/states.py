@@ -51,21 +51,37 @@ def validate_claim(value=_undefined):
 
 
 class State(object):
+    """
+    Top level state encompassing the complete game life cycle, including
+    joining and re-dealing.
+    """
 
-    def on_deal(self, *, player):
-        raise UnexpectedActionError("unexpected action `deal`")
-
-    def on_play(self, *, player, cards, quote):
+    def on_play(self, *, player, cards, claim):
         raise UnexpectedActionError("unexpected action `play`")
 
-    def on_fold(self, *, player, cards, quote):
+    def on_fold(self, *, player):
         raise UnexpectedActionError("unexpected action `fold`")
 
-    def on_call(self, *, player, cards, quote):
+    def on_call(self, *, player):
         raise UnexpectedActionError("unexpected action `call`")
 
 
-class StartedState(State):
+class GameState(object):
+    """
+    Nested state representing progress in a single game.
+    """
+
+    def on_play(self, *, player, cards, claim):
+        raise UnexpectedActionError("unexpected action `play`")
+
+    def on_fold(self, *, player):
+        raise UnexpectedActionError("unexpected action `fold`")
+
+    def on_call(self, *, player):
+        raise UnexpectedActionError("unexpected action `call`")
+
+
+class StartedGameState(GameState):
     """
     Waiting for the first move to be made.  Cards should be dealt evenly, and
     there should be nothing in the `played` or `discard` piles.
@@ -102,10 +118,10 @@ class StartedState(State):
         ...
 
 
-class RestartedState(State):
+class RestartedGameState(GameState):
     """
     The previous round ended with a player picking up the cards from the in-
-    play pile or the in-play being discarded.
+    play pile or the in-play pile being discarded.
 
     The next player can restart the round.
     """
@@ -145,7 +161,7 @@ class RestartedState(State):
         ...
 
 
-class InPlayState(State):
+class InPlayGameState(GameState):
     """
     A round is in progress and at least one move is in progress.
 
@@ -179,7 +195,7 @@ class InPlayState(State):
         self.__last_claim
 
     def on_play(self, *, player, cards, claim):
-        validate_int(player)
+        validate_int(player, min_value=0, max_value=len(self.table.hands))
         validate_list(validator=validate_card(), min_length=1, max_length=6)
         validate_claim(claim)
 
@@ -215,13 +231,13 @@ class InPlayState(State):
         # means that the player will definitely still be holding some cards.
         for possible_winner, hand in enumerate(self.table.hands):
             if not hand:
-                return VictoryState(winner=possible_winner)
+                return FinishedGameState(winner=possible_winner)
 
         # The claim is registered and the cards moved to the played pile.
         # Control goes to the next player.
         next_player = (player + 1) % len(self.table.hands)
         table = self.table.play(cards)
-        return InPlayState(
+        return InPlayGameState(
             next_player=next_player, table=table, last_claim=claim,
         )
 
@@ -254,7 +270,7 @@ class InPlayState(State):
         ...
 
 
-class VictoryState(State):
+class FinishedGameState(GameState):
     """
     One of the players has no cards left, and has survived the next player's
     turn without being successfully called out.  They win!
@@ -263,7 +279,9 @@ class VictoryState(State):
     def winner(self):
         return self.__winner
 
-    def __init__(self, *, winner):
+    def __init__(self, game, *, winner):
+        super().__init__(game)
+
         validate_int(winner, min_value=0)
         self.__winner = winner
 
@@ -275,3 +293,56 @@ class VictoryState(State):
         # === Outcomes ===
         # Cards are dealt evenly to all of the players on the table
         ...
+
+
+class GameRunningState(State):
+
+    @property
+    def dealer(self):
+        return self.__dealer
+
+    @property
+    def players(self):
+        return self.__players
+
+    @property
+    def state(self):
+        return self.__state
+
+    def __init__(self, *, state=None, players=2, dealer=0):
+        if state is None:
+            state = StartedGameState()
+        if not isinstance(state, GameState):
+            raise TypeError(
+                f"expected 'GameState' but state is of type {type(state)!r}"
+            )
+        self.__state = state
+
+        validate_int(players, min_value=2, max_value=13)
+        self.__players = 2
+
+        validate_int(dealer, min_value=0, max_value=players - 1)
+        self.__dealer = 0
+
+    def on_play(self, *, player, cards, claim):
+        game_state = self.state.on_play(
+            player=player, cards=cards, claim=claim,
+        )
+
+        return GameRunningState(
+            dealer=self.dealer, players=self.players, state=game_state,
+        )
+
+    def on_fold(self, *, player):
+        game_state = self.state.on_fold(player=player)
+
+        return GameRunningState(
+            dealer=self.dealer, players=self.players, state=game_state,
+        )
+
+    def on_call(self, *, player):
+        game_state = self.state.on_call(player=player)
+
+        return GameRunningState(
+            dealer=self.dealer, players=self.players, state=game_state,
+        )

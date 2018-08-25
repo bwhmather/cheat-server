@@ -1,0 +1,2 @@
+class UnexpectedActionError(Exception):
+    pass

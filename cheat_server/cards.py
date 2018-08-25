@@ -1,17 +1,17 @@
-RANKS = frozenset([
+ALL_RANKS = frozenset([
     'Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10',
     'Jack', 'Queen', 'King',
 ])
 
 
-SUITS = frozenset([
+ALL_SUITS = frozenset([
     'Spades', 'Clubs', 'Diamonds', 'Hearts',
 ])
 
 
 ALL_CARDS = frozenset([
     '{rank}_of_{suit}'.format(rank=rank, suit=suit)
-    for rank in RANKS for suit in SUITS
+    for rank in ALL_RANKS for suit in ALL_SUITS
 ] + ['Red_Joker', 'Black_Joker'])
 
 

@@ -1,13 +1,16 @@
 import unittest
 import itertools
 
-from cheat_server.cards import ALL_CARDS, RANKS, SUITS, rank, suit
+from cheat_server.cards import ALL_CARDS, ALL_RANKS, ALL_SUITS, rank, suit
 
 
 class CardsTestCase(unittest.TestCase):
 
     def test_no_overlap(self):
-        self.assertEqual(set.intersection(set(RANKS), set(SUITS)), set())
+        self.assertEqual(
+            set.intersection(set(ALL_RANKS), set(ALL_SUITS)),
+            set(),
+        )
 
     def test_size(self):
         self.assertEqual(len(ALL_CARDS), 54)
@@ -27,13 +30,13 @@ class RankTestCase(unittest.TestCase):
             rank('11_of_Hearts')
 
     def test_flipped(self):
-        for rank_, suit_ in itertools.product(RANKS, SUITS):
+        for rank_, suit_ in itertools.product(ALL_RANKS, ALL_SUITS):
             card = '{suit}_of_{rank}'.format(rank=rank_, suit=suit_)
             with self.assertRaises(ValueError):
                 rank(card)
 
     def test_capitalised(self):
-        for rank_, suit_ in itertools.product(RANKS, SUITS):
+        for rank_, suit_ in itertools.product(ALL_RANKS, ALL_SUITS):
             if rank_.isnumeric():
                 continue
 
@@ -65,7 +68,7 @@ class RankTestCase(unittest.TestCase):
         })
 
     def test_reversable(self):
-        for rank_, suit_ in itertools.product(RANKS, SUITS):
+        for rank_, suit_ in itertools.product(ALL_RANKS, ALL_SUITS):
             card = '{rank}_of_{suit}'.format(rank=rank_, suit=suit_)
             self.assertEqual(rank(card), rank_)
 
@@ -84,13 +87,13 @@ class SuitsTestCase(unittest.TestCase):
             rank('11_of_Hearts')
 
     def test_flipped(self):
-        for rank_, suit_ in itertools.product(RANKS, SUITS):
+        for rank_, suit_ in itertools.product(ALL_RANKS, ALL_SUITS):
             card = '{suit}_of_{rank}'.format(rank=rank_, suit=suit_)
             with self.assertRaises(ValueError):
                 suit(card)
 
     def test_capitalised(self):
-        for rank_, suit_ in itertools.product(RANKS, SUITS):
+        for rank_, suit_ in itertools.product(ALL_RANKS, ALL_SUITS):
             card = '{rank}_of_{suit}'.format(rank=rank_, suit=suit_.upper())
             with self.assertRaises(ValueError):
                 suit(card)
@@ -108,6 +111,6 @@ class SuitsTestCase(unittest.TestCase):
         })
 
     def test_reversable(self):
-        for rank_, suit_ in itertools.product(RANKS, SUITS):
+        for rank_, suit_ in itertools.product(ALL_RANKS, ALL_SUITS):
             card = '{rank}_of_{suit}'.format(rank=rank_, suit=suit_)
             self.assertEqual(suit(card), suit_)

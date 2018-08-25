@@ -1,4 +1,4 @@
-from cheat_server.cards import ALL_CARDS, RANKS, SUITS
+from cheat_server.cards import ALL_CARDS, ALL_RANKS, ALL_SUITS
 
 _undefined = object()
 
@@ -9,7 +9,7 @@ def _validate_rank(value):
             f"expected 'string' but value is of type {type(value)!r}"
         )
 
-    if value not in RANKS:
+    if value not in ALL_RANKS:
         raise ValueError(f"string {value!r} does not identify a valid rank")
 
 
@@ -29,7 +29,7 @@ def _validate_suit(value):
             f"expected 'string' but value is of type {type(value)!r}"
         )
 
-    if value not in SUITS:
+    if value not in ALL_SUITS:
         raise ValueError(f"string {value!r} does not identify a valid suit")
 
 

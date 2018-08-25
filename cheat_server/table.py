@@ -3,6 +3,8 @@ from validation import validate_list
 from cheat_server.stack import Stack, validate_stack
 from cheat_server.cards import ALL_CARDS
 
+_undefined = object()
+
 
 class Table(object):
     """
@@ -150,3 +152,20 @@ class Table(object):
             played=played,
             discarded=discarded,
         )
+
+
+def _validate_table(value):
+    if not isinstance(value, Table):
+        raise TypeError(
+            f"expected 'Table' but value is of type {type(value)!r}"
+        )
+
+
+def validate_table(value=_undefined):
+    def validate(value):
+        _validate_table(value)
+
+    if value is not _undefined:
+        validate(value)
+    else:
+        return validate
